@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Grocery List</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/bootstrap.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'order_form.css') }}"/>
+    <script src="{{ url_for('static', filename = 'js/jquery-3.6.0.min.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/bootstrap.min.js') }}"></script>
+
+    <script>
+        // Initialize the page
+        $(document).ready(function() {
+            // Simple validation and submission of the order form
+            $("#submit-button").click(function() {
+                var errors = [];
+
+                if (! $("#full_name").val()) errors.push("Client's name is not specified.");
+                if (! $("input:radio[name='family_size']").is(":checked") ) errors.push("Client family size is not specified.");
+                if (! $("input:radio[name='lane']").is(":checked") ) errors.push("No lane is selected.");
+
+                if (errors.length > 0) {
+                    alert( "The grocery list could not be submitted because:\n\n" + errors.map(function(x) { return("   - " + x); }).join("\n") );
+                    $("html, body").animate({ scrollTop: 0 }, "slow");
+                } else {
+                    $("#print_status").html("Printing...");
+                    $(".shroud").show();
+                    $.ajax({
+                        type: "POST",
+                        url: "{{ url_for('print_form') }}",
+                        data: $("#grocery_list").serialize(),
+                        success: function(data) {
+                            $("#print_status").html("Done.");
+                            $("html, body").animate({ scrollTop: 0 }, "slow");
+                            $('#grocery_list')[0].reset();
+                            $('.radio_null').prop("checked", true);
+                            $(".shroud").hide();
+                        },
+                        error: function() {
+                            $("#print_status").html("Error.");
+                            alert("Something went wrong submitting the list. Try again.");
+                            $(".shroud").hide();
+                        }
+                    })
+                }
+            })
+        });
+    </script>
+
+    <style type="text/css">
+        .shroud {
+            display: none;
+            position:fixed;
+            padding:0;
+            margin:0;
+            top:0;
+            left:0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .shroud_msg {
+            color: white;
+            text-align: center;
+            margin: 30% auto auto auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="shroud"">
+        <div class="shroud_msg">
+            <div class="spinner-border text-warning"></div>
+            <h2 id="print_status">Printing...</h2>
+        </div>
+    </div>
+
+    <div class="control-bar">
+        <button class="big-red" id="submit-button">SUBMIT</button>
+        Drive Thru Grocery
+        <img class="logo" src="{{ url_for('static', filename='php_logo.png') }}"/>
+    </div>
+
+    <form id="grocery_list" name="grocery_list">
+        <div class="top-section">
+            <div class="row mb-3">
+                <label class="col-sm-2 col-form-label top-label" for="full_name">Full name</label>
+                <div class="col-sm-10">
+                    <input type="text" class="form-control" name="full_name" id="full_name" placeholder="required"/>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <label class="col-sm-2 col-form-label top-label" for="address">Address</label>
+                <div class="col-sm-10">
+                    <input type="text" class="form-control" name="address" id="address" size="64"/>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <label class="col-sm-2 col-form-label top-label" for="phone">Phone #</label>
+                <div class="col-sm-10">
+                    <input type="text" class="form-control" name="phone" id="phone" size="64"/>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <label class="col-sm-2 col-form-label top-label">Family size</label>
+                <div class="col-sm-10">
+                    <div class="btn-group" role="group" style="width: 100%">
+                        <input type="radio" class="btn-check" name="family_size" id="family_size_1" value="1: Yellow">
+                        <label class="btn btn-outline-primary btn-yellow" for="family_size_1">1</label>
+
+                        <input type="radio" class="btn-check" name="family_size" id="family_size_2" value="2-4: Blue">
+                        <label class="btn btn-outline-primary" for="family_size_2">2-4</label>
+
+                        <input type="radio" class="btn-check" name="family_size" id="family_size_3" value="5+: Pink">
+                        <label class="btn btn-outline-primary btn-pink" for="family_size_3">5+</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <label class="col-sm-2 col-form-label top-label">Lane</label>
+                <div class="col-sm-10">
+                    <div class="btn-group" role="group" style="width: 100%">
+                        <input type="radio" class="btn-check" name="lane" id="lane_1" value="LANE 1">
+                        <label class="btn btn-outline-primary" for="lane_1">1</label>
+
+                        <input type="radio" class="btn-check" name="lane" id="lane_2" value="LANE 2">
+                        <label class="btn btn-outline-primary" for="lane_2">2</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+{% macro checktable(section, items) %}
+        <table>
+            <tr>
+            {% for item in items|reject('eq', 'Other:') %}
+                {% if loop.index % 2 == 1 %}<tr>{% endif %}
+                    <td width="50%"><input class="btn-check" type="checkbox" name="{{ section|shortname }}" id="{{ section|shortname }}.{{ loop.index }}" value="{{ item }}"/><label style="width: 100%" class="btn btn-outline-primary" for="{{ section|shortname }}.{{ loop.index }}">{{ item|e }}</label></td>
+                {% if loop.index % 2 == 0 %}</tr>{% endif %}
+                {% if loop.last and loop.length % 2 == 0 %}<td></td></tr>{% endif %}
+            {% endfor %}
+            </tr>
+            {% if 'Other:' in items %}
+            <tr>
+                <td colspan="2">
+                    <div class="input-group mt-2">
+                        <span class="input-group-text"><label for="{{ section|shortname }}_other">Other:&nbsp;</label></span>
+                        <input class="form-control" type="text" name="{{ section|shortname }}_other" id="{{ section|shortname }}_other">
+                    </div>
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+{% endmacro %}
+
+{% macro radiotable(section, items) %}
+        <table>
+            <tr>
+                <td width="50%"><input class="btn-check" class="radio_null" type="radio" name="{{ section|shortname }}" id="{{ section|shortname }}.0" value="" checked/><label style="width: 100%"  class="btn btn-outline-danger" for="{{ section|shortname }}.0">None</label></td>
+            {% for item in items|reject('eq', 'Other:') %}
+                {% if loop.index % 2 == 0 %}<tr>{% endif %}
+                    <td width="50%"><input class="btn-check"  type="radio" name="{{ section|shortname }}" id="{{ section|shortname }}.{{ loop.index }}" value="{{ item }}"/><label style="width: 100%" class="btn btn-outline-primary" for="{{ section|shortname }}.{{ loop.index }}">{{ item|e }}</label></td>
+                {% if loop.index % 2 == 1 %}</tr>{% endif %}
+                {% if loop.last and loop.length % 2 == 0 %}<td></td></tr>{% endif %}
+            {% endfor %}
+            </tr>
+            {% if 'Other:' in items %}
+            <tr>
+                <td colspan="2">
+                    <div class="input-group mt-2">
+                        <input class="btn-check form-check-input" type="radio" name="{{ section|shortname }}" id="{{ section|shortname }}.X" value=""/><label class="btn btn-outline-primary input-group-text"  for="{{ section|shortname }}.X">&nbsp;Other:&nbsp;</label><input type="text" class="form-control" name="{{ section|shortname }}_other" id="{{ section|shortname }}_other">
+                    </div>
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+{% endmacro %}
+
+
+{% for section in grocery_options.Section.unique().tolist() %}
+        {% set items = grocery_options[grocery_options.Section == section].Item.tolist() %}
+        <div class="section">
+            <h3>{{ section|e }}</h3>
+            {% if section|shortname in ['formula', 'snack_bags'] %}
+            {{ radiotable(section, items) }}
+            {% else %}
+            {{ checktable(section, items) }}
+            {% endif %}
+        </div>
+{% endfor %}
+    </form>
+
+</body>
+</html>
