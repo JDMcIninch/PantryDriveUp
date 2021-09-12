@@ -1,12 +1,15 @@
 Metadata-Version: 2.1
 Name: PantryDriveUp-jmcininch
-Version: 0.0.1
+Version: 0.0.2
 Summary: Tool for PHP Pantry Drive-up Service
-Home-page: UNKNOWN
+Home-page: https://github.com/JDMcIninch/PantryDriveUp
 Author: James McIninch
-Author-email: james.mcininch@gmail.com
+Author-email: james.mcininch *at* gmail.com
 License: UNKNOWN
-Description: UNKNOWN
+Project-URL: Bug Tracker, https://github.com/JDMcIninch/PantryDriveUp/issues
+Description: # PantryDriveUp
+        Source code for a trivial food pantry drive-through grocery list / packing list setup
+        
 Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: BSD License

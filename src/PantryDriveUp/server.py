@@ -7,7 +7,6 @@ import pdfkit   # pdfkit requires that wkhtmltopdf be installed in order to work
 import platform
 import shutil
 import socket
-import tempfile
 
 
 NAME_DICTIONARY = {
@@ -38,7 +37,8 @@ NAME_DICTIONARY = {
     'Diapers & Pull-ups': 'diapers',
     'Formula': 'formula',
     'Baby Food': 'baby-food',
-    'Coffee/Tea/Cocoa': 'coffee'
+    'Coffee/Tea/Cocoa': 'coffee',
+    'Vegetable Oil': 'oil'
 }
 
 
@@ -48,40 +48,47 @@ if not os.path.isfile(os.path.expanduser('~/Desktop/DriveThruGroceryList.xlsx'))
                     os.path.expanduser('~/Desktop/DriveThruGroceryList.xlsx'))
     else:
         try:
-            import importlib.resources as pkg_resources
+            from importlib.resources.pkg_resources import resource_filename
         except ImportError:
             # Try backported to PY<37 `importlib_resources`.
-            import importlib_resources as pkg_resources
-        with pkg_resources.path(__package__, 'server.py') as server_py:
-            spreadsheet = os.path.join(os.path.dirname(server_py), 'static', 'DriveThruGroceryList.xlsx')
-            shutil.copy(spreadsheet,
-                    os.path.expanduser('~/Desktop/DriveThruGroceryList.xlsx'))
+            from pkg_resources import resource_filename
+        spreadsheet = resource_filename(__package__, 'static/DriveThruGroceryList.xlsx')
+        shutil.copy(spreadsheet, os.path.expanduser('~/Desktop/DriveThruGroceryList.xlsx'))
 
 DriveThruGroceryList = read_excel(os.path.expanduser('~/Desktop/DriveThruGroceryList.xlsx'), engine='openpyxl')
 
 app = Flask(__name__, static_url_path='/static')
 
 
-def print_html(html):
+def print_html(html, name):
     """ Convert HTML markup to PDF and then send the PDF to the default printer.
         Windows is unique in that it has no support on it's own for printing PDF
         files, so users of Windows must install PDFtoPrinter from this URL:
         http://www.columbia.edu/~em36/PDFtoPrinter.exe
     """
-    with tempfile.TemporaryDirectory() as tmpdir:
-        pdf_path = os.path.join(tmpdir, 'packing_list.pdf')
-        pdfkit.from_string(html, pdf_path, options={'page-size': 'Letter',
-                                                    'zoom': '1.22',
-                                                    'margin-bottom': '0',
-                                                    'margin-left': '5',
-                                                    'margin-right': '2'})
-        operating_system = platform.system()
+    packing_list_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'PackingLists')
 
-        if operating_system in ['Darwin', 'Linux']:  # send ot printer on Mac
-            os.system('lp "{}"'.format(pdf_path))
-            # os.system('cp "{}" ~/Desktop/packing_list.pdf && open ~/Desktop/packing_list.pdf'.format(pdf_path))
-        elif operating_system == 'Windows':
-            os.system('PDFtoPrinter.exe "{}"'.format(pdf_path))
+    if not os.path.isdir(packing_list_path):
+        try:
+            os.makedirs(packing_list_path, 0o777)
+        except Exception:
+            print('Failed to create directory {}; could not create PDF'.format(packing_list_path))
+            return
+
+    pdf_path = os.path.join(packing_list_path, '{0} {1}.pdf'.format(datetime.now().strftime('%Y-%m-%d'), name))
+
+    pdfkit.from_string(html, pdf_path, options={'page-size': 'Letter',
+                                                'zoom': '1.22',
+                                                'margin-bottom': '0',
+                                                'margin-left': '5',
+                                                'margin-right': '2'})
+    operating_system = platform.system()
+
+    if operating_system in ['Darwin', 'Linux']:  # send ot printer on Mac
+        os.system('lp "{}"'.format(pdf_path))
+        # os.system('cp "{}" ~/Desktop/packing_list.pdf && open ~/Desktop/packing_list.pdf'.format(pdf_path))
+    elif operating_system == 'Windows':
+        os.system('PDFtoPrinter.exe "{}"'.format(pdf_path))
 
 
 def my_ip_address():
@@ -126,7 +133,7 @@ def print_form():
                                    grocery_list=grocery_list,
                                    timestamp=datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f%z'),
                                    fam_color=fam_color)
-    print_html(packing_list)
+    print_html(packing_list, request.form['full_name'])
 
     return "Success"
 
