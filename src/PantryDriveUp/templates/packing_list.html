@@ -40,7 +40,9 @@
 {% macro groceries(category) %}
     {% set standard_list = grocery_list[category]|simplify|e %}
     {% set additions     = grocery_list[category ~ '_other']|simplify|e %}
-    {% if standard_list != '' and additions != '' -%}
+    {% if standard_list == '' and additions == '' -%}
+    <i><span style="color: red">none</span></i>
+    {%- elif standard_list != '' and additions != '' -%}
     {{ standard_list }}, {{ additions }}
     {%- else -%}
     {{ standard_list }} {{ additions }}
@@ -85,8 +87,10 @@
                 <tr style="height: 6mm"><td class="nob" width="90%"><b>Fam. Color:</b> {{ groceries('family_size') }}</td><td class="fam_color nob"></td></tr>
                 <tr style="height: 6mm"><td colspan="2"><b>Cans</b></td></tr>
                 <tr><td colspan="2"><u>Vegetables (canned):</u>&nbsp;&nbsp; {{ groceries('canned-veg') }}</td></tr>
-                <tr><td colspan="2"><u>Broth:</u>&nbsp;&nbsp; {{ groceries('broth') }}</td></tr>
-                <tr><td colspan="2"><u>Soup (canned):</u>&nbsp;&nbsp; {{ groceries('canned-soup') }}</td></tr>
+                <!-- <tr><td colspan="2"><u>Broth:</u>&nbsp;&nbsp; {{ groceries('broth') }}</td></tr>
+                <tr><td colspan="2"><u>Soup (canned):</u>&nbsp;&nbsp; {{ groceries('canned-soup') }}</td></tr> -->
+                <tr><td colspan="2"><u>Canned Soup & Broth:</u>&nbsp;&nbsp; {{ groceries('canned-soup') }}, {{ groceries('broth') }}</td></tr>
+                <tr><td colspan="2"><u>Veg. Oil:</u>&nbsp;&nbsp; {{ groceries('oil') }}</td></tr>
                 <tr><td colspan="2"><u>Meat (canned):</u>&nbsp;&nbsp; {{ groceries('canned-meat') }}</td></tr>
                 <tr><td colspan="2"><u>Beans &amp; lentils:</u>&nbsp;&nbsp; {{ groceries('beans') }}</td></tr>
                 <tr><td colspan="2"><u>Juice:</u>&nbsp;&nbsp; {{ groceries('juice') }}</td></tr>
